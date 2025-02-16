@@ -7,5 +7,4 @@
 </template>
 
 <script setup>
-// Seu código JavaScript aqui
 </script>
