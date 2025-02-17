@@ -8,22 +8,24 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     redirect: '/login',
+    meta: { skipeAuth: true },
   },
   {
     path: '/login',
     name: 'Login',
     component: LoginView,
+    meta: { skipeAuth: true },
   },
   {
     path: '/register',
     name: 'Register',
     component: RegisterView,
+    meta: { skipeAuth: true },
   },
   {
     path: '/home',
     name: 'Home',
     component: HomeView,
-    meta: { requiresAuth: true },
   },
 ];
 
@@ -33,10 +35,10 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next) => {
-  if (to.meta.requiresAuth && !store.getters.isAuthenticated) {
-    next('/login');
-  } else {
+  if (to.meta.skipeAuth || store.getters.isAuthenticated) {
     next();
+  } else {
+    next('/login');
   }
 });
 
