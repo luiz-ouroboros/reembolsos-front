@@ -53,6 +53,9 @@ const store = createStore({
     },
     setSearch(state, search) {
       state.search = search;
+    },
+    setSupplierFilter(state, supplier_id) {
+      state.supplier_id = supplier_id;
     }
   },
   actions: {
@@ -101,7 +104,8 @@ const store = createStore({
         });
     },
     loadRefundRequests({ commit }, options = {}) {
-      options['search'] = store.state.search
+      if (store.state.search) options['search'] = store.state.search
+      if (store.state.supplier_id) options['supplier_id'] = store.state.supplier_id
 
       return api
         .get('/refund_requests', { params: options })
