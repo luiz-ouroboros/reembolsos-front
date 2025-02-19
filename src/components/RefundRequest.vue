@@ -60,7 +60,7 @@
           <SupplierCombo
             :refundRequest="editingRefund"
             :editable="canUpdate()"
-            @supplier-selected="(supplier) => editingRefund.supplier_id = supplier.id"
+            @supplier-selected="supplierSelectedFromCombo"
             @create-supplier="createSupplierFromCombo"
           />
         </div>
@@ -188,6 +188,10 @@ function update(payload: object) {
 function destroy() {
   store.dispatch('destroyRefundRequest', editingRefund.value.id)
     .then(() => editingRefund.value.isExpanded = false)
+}
+
+function supplierSelectedFromCombo(supplier: any) {
+  editingRefund.value.supplier_id = supplier.id
 }
 
 function createSupplierFromCombo(name: string) {
