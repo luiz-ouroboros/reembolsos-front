@@ -118,9 +118,6 @@ function initializeSupplier() {
 }
 
 onMounted(() => {
-  if (!props.suppliers) {
-    store.dispatch('loadSuppliers');
-  }
   initializeSupplier();
 });
 
