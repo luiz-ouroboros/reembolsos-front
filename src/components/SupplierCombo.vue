@@ -1,15 +1,24 @@
 <template>
   <div class="relative">
-    <input
-      type="text"
-      v-model="searchTerm"
-      :readonly="!isEditable"
-      @focus="handleFocus"
-      @blur="handleBlur"
-      @keyup.enter="handleEnter"
-      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-      placeholder="Selecione ou crie um fornecedor"
-    />
+    <div class="flex items-center">
+      <input
+        type="text"
+        v-model="searchTerm"
+        :readonly="!isEditable"
+        @focus="handleFocus"
+        @blur="handleBlur"
+        @keyup.enter="handleEnter"
+        class="mt-1 block flex-grow px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+        placeholder="Selecione ou crie um fornecedor"
+      />
+      <button
+        @click="handleEnter"
+        type="button"
+        class="mt-1 px-3 py-2 border border-gray-300 bg-white rounded-r-md shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-red-500 focus:border-red-500"
+      >
+        +
+      </button>
+    </div>
     <ul
       v-if="showDropdown && filteredSuppliers.length > 0 && isEditable"
       class="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-auto"
@@ -42,7 +51,6 @@ interface RefundRequest {
 }
 
 const props = defineProps<{
-  suppliers?: Supplier[];
   editable: boolean;
   refundRequest: RefundRequest;
 }>();
@@ -55,10 +63,7 @@ const store = useStore();
 
 const searchTerm = ref('');
 const showDropdown = ref(false);
-
-const finalSuppliers = computed<Supplier[]>(() => {
-  return props.suppliers ?? store.state.suppliers ?? [];
-});
+const finalSuppliers = ref(store.state.suppliers);
 
 const isEditable = computed(() => props.editable);
 
