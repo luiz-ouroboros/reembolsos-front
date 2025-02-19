@@ -18,23 +18,32 @@
       </span>
     </div>
     <div class="relative">
-      <input
-        ref="inputRef"
-        type="text"
-        v-model="searchTerm"
-        :readonly="!isEditable"
-        @focus="handleFocus"
-        @keydown.enter.prevent="handleEnter"
-        @blur="handleBlur"
-        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-        placeholder="Selecione ou crie uma tag"
-      />
+      <div class="flex items-center">
+        <input
+          ref="inputRef"
+          type="text"
+          v-model="searchTerm"
+          :readonly="!isEditable"
+          @focus="handleFocus"
+          @keydown.enter.prevent="handleEnter"
+          @blur="handleBlur"
+          class="mt-1 block flex-grow px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+          placeholder="Selecione ou crie uma tag"
+        />
+        <button
+          @click="handleEnter"
+          type="button"
+          class="mt-1 px-3 py-2 border border-gray-300 bg-white rounded-r-md shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-red-500 focus:border-red-500"
+        >
+          +
+        </button>
+      </div>
       <ul
-        v-if="showDropdown && filteredTags.length > 0 && isEditable"
+        v-if="showDropdown && filteredTags().length > 0 && isEditable"
         class="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-auto"
       >
         <li
-          v-for="tag in filteredTags"
+          v-for="tag in filteredTags()"
           :key="tag.id"
           @mousedown.prevent="selectTag(tag)"
           class="p-2 hover:bg-gray-100 cursor-pointer"
@@ -79,7 +88,7 @@ const selectedTags = computed(() => {
   return tags.value.filter((tag) => props.refundRequest.tag_ids!.includes(tag.id))
 })
 
-const filteredTags = computed(() => {
+function filteredTags() {
   const term = searchTerm.value.trim().toLowerCase()
   return tags.value.filter((tag) => {
     if (props.refundRequest.tag_ids && props.refundRequest.tag_ids.includes(tag.id)) {
@@ -88,7 +97,7 @@ const filteredTags = computed(() => {
     if (!term) return true
     return tag.name.toLowerCase().includes(term)
   })
-})
+}
 
 function selectTag(tag: Tag) {
   emit('tag-selected', tag)
@@ -99,10 +108,9 @@ function selectTag(tag: Tag) {
 
 function handleEnter() {
   if (isEditable.value && searchTerm.value.trim()) {
-    if (filteredTags.value.length === 0) {
+    if (filteredTags().length === 0) {
       emit('create-tag', searchTerm.value.trim())
       searchTerm.value = ''
-      showDropdown.value = false
       inputRef.value?.focus()
     }
   }
