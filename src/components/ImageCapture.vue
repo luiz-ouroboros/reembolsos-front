@@ -1,79 +1,123 @@
-<template>
-  <div v-if="isCameraOpen" class="fixed inset-0 bg-black flex flex-col justify-center items-center">
-    <video ref="videoElement" autoplay class="w-full h-full object-cover"></video>
-
-    <div class="absolute bottom-4 flex space-x-4">
-      <button @click="closeCamera" class="bg-red-500 text-white px-4 py-2 rounded">
-        Cancelar
-      </button>
-      <button @click="captureImage" class="bg-blue-500 text-white px-4 py-2 rounded">
-        Capturar
-      </button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-
-const videoElement = ref<HTMLVideoElement | null>(null);
-const isCameraOpen = ref(false);
-const mediaStream = ref<MediaStream | null>(null);
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const emit = defineEmits<{
-  (event: 'capture', image: string): void;
-  (event: 'close'): void;
+  (e: 'close', payload: false): void;
+  (e: 'captured', capturedImage: string): void;
+  (e: 'attached', file: File): void;
 }>();
 
-async function openCamera() {
-  try {
-    const constraints = {
-      video: { facingMode: 'environment' },
-    };
-    mediaStream.value = await navigator.mediaDevices.getUserMedia(constraints);
-    if (videoElement.value) {
-      videoElement.value.srcObject = mediaStream.value;
-    }
-    isCameraOpen.value = true;
-  } catch (error) {
-    console.error('Erro ao acessar a câmera:', error);
-    alert('Não foi possível acessar a câmera.');
-  }
-}
+const canvas = ref<HTMLCanvasElement | null>(null);
+const video = ref<HTMLVideoElement | null>(null);
+const ctx = ref<CanvasRenderingContext2D | null>(null);
+let stream: MediaStream | null = null;
+let animationFrameId: number | null = null;
 
-function captureImage() {
-  if (videoElement.value) {
-    const canvas = document.createElement('canvas');
-    canvas.width = videoElement.value.videoWidth;
-    canvas.height = videoElement.value.videoHeight;
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL('image/png');
-      emit('capture', imageData);
-      closeCamera();
+const constraints = { audio: false, video: true };
+
+const isCaptured = ref(false);
+const capturedImage = ref<string | null>(null);
+
+const fileInput = ref<HTMLInputElement | null>(null);
+
+async function startStream() {
+  if (video.value && canvas.value) {
+    ctx.value = canvas.value.getContext('2d');
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.value.srcObject = stream;
+      await video.value.play();
+      draw();
+    } catch (err) {
+      console.error(err);
     }
   }
 }
 
-function closeCamera() {
-  if (mediaStream.value) {
-    mediaStream.value.getTracks().forEach((track) => track.stop());
+function draw() {
+  if (!isCaptured.value && video.value && canvas.value && ctx.value) {
+    ctx.value.drawImage(video.value, 0, 0, canvas.value.width, canvas.value.height);
+    animationFrameId = requestAnimationFrame(draw);
   }
-  isCameraOpen.value = false;
-  emit('close'); 
 }
 
+function capturePhoto() {
+  if (canvas.value) {
+    capturedImage.value = canvas.value.toDataURL('image/png');
+    isCaptured.value = true;
+    if (video.value) {
+      video.value.pause();
+    }
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+  }
+}
+
+function retry() {
+  isCaptured.value = false;
+  capturedImage.value = null;
+  if (video.value) {
+    video.value.play();
+    draw();
+  }
+}
+
+function confirmCapture() {
+  if (capturedImage.value) {
+    emit('captured', capturedImage.value);
+  }
+}
+
+function goBack() {
+  emit('close', false);
+}
+
+function openFileChooser() {
+  fileInput.value?.click();
+}
+
+function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files ? target.files[0] : null;
+  if (file) {
+    emit('attached', file);
+  }
+  if (target) {
+    target.value = '';
+  }
+}
 
 onMounted(() => {
-  openCamera();
+  startStream();
 });
 
-
-onUnmounted(() => {
-  closeCamera();
+onBeforeUnmount(() => {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+  if (stream) {
+    stream.getTracks().forEach((track) => track.stop());
+  }
 });
 </script>
 
-<style scoped>
-</style>
+<template>
+  <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 9999;">
+    <canvas ref="canvas" width="1280" height="720" style="width: 100vw; height: 100vh;"></canvas>
+    <video ref="video" autoplay playsinline webkit-playsinline muted hidden></video>
+    <input ref="fileInput" type="file" accept="image/*,application/pdf" style="display: none" @change="onFileChange" />
+    <div style="position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 10px;">
+      <template v-if="!isCaptured">
+        <button @click="goBack" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">Voltar</button>
+        <button @click="capturePhoto" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">Capturar</button>
+        <button @click="openFileChooser" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">Anexar</button>
+      </template>
+      <template v-else>
+        <button @click="retry" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">Tentar novamente</button>
+        <button @click="confirmCapture" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">OK</button>
+      </template>
+    </div>
+  </div>
+</template>
