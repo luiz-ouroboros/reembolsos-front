@@ -8,6 +8,14 @@
       <p v-show="editingRefund.description" class="text-gray-700 mt-2">{{ editingRefund.description }}</p>
       <p v-show="editingRefund.total" class="text-gray-700 mt-2">R$ {{ editingRefund.total }}</p>
     </div>
+    <div v-if="!editingRefund.isExpanded" class="mt-2">
+      <TagDisplay
+        v-if="editingRefund.tags"
+        :tags="editingRefund.tags"
+        :editable="canUpdate()"
+        @tag-removed="removeTag()"
+      />
+    </div>
 
     <transition name="expand">
       <div v-if="editingRefund.isExpanded" class="mt-4 space-y-4" @click.stop>
@@ -72,23 +80,12 @@
         </div>
         <div>
           <label for="tag-search" class="block font-medium text-gray-700">Tags</label>
-          <div class="flex flex-wrap gap-2 mb-2">
-            <span
-              v-for="tag in editingRefund.tags"
-              :key="tag.id"
-              class="bg-gray-200 px-2 py-1 rounded flex items-center"
-            >
-              {{ tag.name }}
-              <button
-                v-if="canUpdate()"
-                @click="removeTag(tag)"
-                type="button"
-                class="ml-1 text-red-500"
-              >
-                x
-              </button>
-            </span>
-          </div>
+          <TagDisplay
+            v-if="editingRefund.tags"
+            :tags="editingRefund.tags"
+            :editable="canUpdate()"
+            @tag-removed="removeTag()"
+          />
           <SelectCombo
             v-if="canUpdate()"
             :items="store.state.tags"
@@ -101,7 +98,7 @@
             @item-createde="createTagFromCombo"
           />
         </div>
-        <div class="flex justify-between mt-4">
+        <div v-if="canUpdate() || canApprove()" class="flex justify-between mt-4">
           <button v-if="canUpdate()" @click="destroy" type="button" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">
             Excluir
           </button>
@@ -128,6 +125,7 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
+import TagDisplay from './TagDisplay.vue'
 import SelectCombo from './SelectCombo.vue'
 import useVuelidate from '@vuelidate/core'
 import { required, numeric, minValue } from '@vuelidate/validators'
