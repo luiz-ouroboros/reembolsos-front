@@ -13,7 +13,14 @@ const ctx = ref<CanvasRenderingContext2D | null>(null);
 let stream: MediaStream | null = null;
 let animationFrameId: number | null = null;
 
-const constraints = { audio: false, video: true };
+const constraints = {
+  audio: false,
+  video: {
+    facingMode: 'environment',
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+  },
+};
 
 const isCaptured = ref(false);
 const capturedImage = ref<string | null>(null);
@@ -108,7 +115,7 @@ onBeforeUnmount(() => {
     <canvas ref="canvas" width="1280" height="720" style="width: 100vw; height: 100vh;"></canvas>
     <video ref="video" autoplay playsinline webkit-playsinline muted hidden></video>
     <input ref="fileInput" type="file" accept="image/*,application/pdf" style="display: none" @change="onFileChange" />
-    <div style="position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 10px;">
+    <div style="position: absolute; bottom: 70px; width: 100%; display: flex; justify-content: center; gap: 10px;">
       <template v-if="!isCaptured">
         <button @click="goBack" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">Voltar</button>
         <button @click="capturePhoto" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">Capturar</button>

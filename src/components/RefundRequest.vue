@@ -10,7 +10,7 @@
     </div>
 
     <transition name="expand">
-      <div v-show="editingRefund.isExpanded" class="mt-4 space-y-4" @click.stop>
+      <div v-if="editingRefund.isExpanded" class="mt-4 space-y-4" @click.stop>
         <div>
           <label for="description" class="block font-medium text-gray-700">Descrição</label>
           <input
@@ -56,22 +56,49 @@
           </div>
         </div>
         <div>
-          <label for="supplier-search" class="block font-medium text-gray-700">Fornecedor</label>
-          <SupplierCombo
-            :refundRequest="editingRefund"
+          <SelectCombo
+            :items="store.state.suppliers"
+            :selected_item="editingRefund.supplier"
             :editable="canUpdate()"
-            @supplier-selected="supplierSelectedFromCombo"
-            @create-supplier="createSupplierFromCombo"
+            :createble="canUpdate()"
+            :clearable="canUpdate()"
+            :validator="v$.supplier_id"
+            inputClass="focus:ring-red-500 focus:border-red-500"
+            label_prop="Fornecedor"
+            @item-selected="supplierSelectedFromCombo"
+            @item-createde="createSupplierFromCombo"
+            @item-cleared="supplierClearFromCombo"
           />
         </div>
         <div>
           <label for="tag-search" class="block font-medium text-gray-700">Tags</label>
-          <TagCombo
-            :tags="tags"
-            :refundRequest="editingRefund"
-            @tag-selected="handleTagSelected"
-            @create-tag="createTagFromCombo"
-            @remove-tag="removeTagFromCombo"
+          <div class="flex flex-wrap gap-2 mb-2">
+            <span
+              v-for="tag in editingRefund.tags"
+              :key="tag.id"
+              class="bg-gray-200 px-2 py-1 rounded flex items-center"
+            >
+              {{ tag.name }}
+              <button
+                v-if="canUpdate()"
+                @click="removeTag(tag)"
+                type="button"
+                class="ml-1 text-red-500"
+              >
+                x
+              </button>
+            </span>
+          </div>
+          <SelectCombo
+            v-if="canUpdate()"
+            :items="store.state.tags"
+            :editable="canUpdate()"
+            :createble="canUpdate()"
+            :clearable="canUpdate()"
+            :validator="v$.tags"
+            inputClass="focus:ring-red-500 focus:border-red-500"
+            @item-selected="handleTagSelected"
+            @item-createde="createTagFromCombo"
           />
         </div>
         <div class="flex justify-between mt-4">
@@ -99,10 +126,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import SupplierCombo from './SupplierCombo.vue'
-import TagCombo from './TagCombo.vue'
+import SelectCombo from './SelectCombo.vue'
 import useVuelidate from '@vuelidate/core'
 import { required, numeric, minValue } from '@vuelidate/validators'
 
@@ -135,7 +161,6 @@ const props = defineProps<{
 }>()
 
 const store = useStore();
-const tags = ref(store.state.tags);
 
 const editingRefund = ref(
   store.state.refundRequests.find(
@@ -143,10 +168,18 @@ const editingRefund = ref(
   )
 )
 
+onMounted(() => {
+  if (!editingRefund.value.paid_at) {
+    editingRefund.value.paid_at = new Date().toISOString().split('T')[0]
+  }
+})
+
 const rules = {
   description: { required },
   total: { required, numeric, minValue: minValue(0) },
-  paid_at: { required }
+  paid_at: { required },
+  supplier_id: { required },
+  tags: { required }
 }
 const v$ = useVuelidate(rules, editingRefund.value)
 
@@ -194,8 +227,12 @@ function supplierSelectedFromCombo(supplier: any) {
   editingRefund.value.supplier_id = supplier.id
 }
 
-function createSupplierFromCombo(name: string) {
-  store.dispatch('createSupplier', { name })
+function supplierClearFromCombo() {
+  editingRefund.value.supplier_id = null
+}
+
+function createSupplierFromCombo(item) {
+  store.dispatch('createSupplier',item)
     .then((response: any) => {
       store.dispatch('loadSuppliers')
       if (response && response.data && response.data.id) {
@@ -207,21 +244,24 @@ function createSupplierFromCombo(name: string) {
     });
 }
 
-function handleTagSelected(tag: { id: number; name: string }) {
+function handleTagSelected(tag) {
   if (!editingRefund.value.tag_ids) editingRefund.value.tag_ids = [];
+  if (!editingRefund.value.tags) editingRefund.value.tags = [];
   if (!editingRefund.value.tag_ids.includes(tag.id)) {
     editingRefund.value.tag_ids.push(tag.id);
+    editingRefund.value.tags.push(tag);
   }
 }
 
-function createTagFromCombo(name: string) {
+function createTagFromCombo(tag) {
   store
-    .dispatch('createTag', { name })
+    .dispatch('createTag', tag)
     .then((response: any) => {
       store.dispatch('loadTags');
       if (response && response.data && response.data.id) {
         if (!editingRefund.value.tag_ids) editingRefund.value.tag_ids = [];
         editingRefund.value.tag_ids.push(response.data.id);
+        editingRefund.value.tags.push(response.data);
       }
     })
     .catch((error: any) => {
@@ -229,10 +269,15 @@ function createTagFromCombo(name: string) {
     });
 }
 
-function removeTagFromCombo(tag: { id: number; name: string }) {
-  if (editingRefund.value.tag_ids) {
-    const idx = editingRefund.value.tag_ids.indexOf(tag.id);
-    if (idx > -1) editingRefund.value.tag_ids.splice(idx, 1);
+function removeTag(tag) {
+  if (canUpdate()) {
+    if (editingRefund.value.tag_ids) {
+      const idx = editingRefund.value.tag_ids.indexOf(tag.id);
+      if (idx > -1) {
+        editingRefund.value.tag_ids.splice(idx, 1);
+        editingRefund.value.tags.splice(idx, 1)
+      }
+    }
   }
 }
 
