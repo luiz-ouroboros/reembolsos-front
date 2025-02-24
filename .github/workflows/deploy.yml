@@ -32,6 +32,9 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Adicionar host remoto aos known_hosts
+        run: ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
+
       - name: Enviar arquivos para o servidor via rsync
         env:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
