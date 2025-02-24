@@ -1,4 +1,4 @@
-import { createStore, Commit } from 'vuex';
+import { createStore } from 'vuex';
 import api from '../api'; // Importe o cliente Axios
 
 interface State {

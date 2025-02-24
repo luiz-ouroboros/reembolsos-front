@@ -13,7 +13,7 @@
         v-if="editingRefund.tags"
         :tags="editingRefund.tags"
         :editable="canUpdate()"
-        @tag-removed="removeTag()"
+        @tag-removed="removeTag"
       />
     </div>
 
@@ -84,7 +84,7 @@
             v-if="editingRefund.tags"
             :tags="editingRefund.tags"
             :editable="canUpdate()"
-            @tag-removed="removeTag()"
+            @tag-removed="removeTag"
           />
           <SelectCombo
             v-if="canUpdate()"
@@ -267,7 +267,7 @@ function createTagFromCombo(tag) {
     });
 }
 
-function removeTag(tag) {
+function removeTag(tag: any) {
   if (canUpdate()) {
     if (editingRefund.value.tag_ids) {
       const idx = editingRefund.value.tag_ids.indexOf(tag.id);
